@@ -72,6 +72,10 @@ To view the statistics:
     * **"Festival ID Daily Statistics"**: Shows daily counts. Use the `<<` and `>>` links to navigate through weekly periods.
     * **"Festival ID Global Statistics"**: Displays overall performance for each ID. It defaults to the top 5 IDs. Click "Show All IDs" to see the complete list, or "Show Top 5 IDs" to collapse it back.
 
+## Use case
+
+[Festivalul Inimilor](use_case/festivalul_inimilor_nfc_tracking.md)
+
 ## License
 
 This plugin is open-source software licensed under the [GNU General Public License v2.0 or later](https://www.gnu.org/licenses/gpl-2.0.html).

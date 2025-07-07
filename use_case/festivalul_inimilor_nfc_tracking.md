@@ -5,12 +5,12 @@ This document details a specific application of the "Festival ID Tracker" WordPr
 ## Festivalul Inimilor - A Brief Overview
 
 "Festivalul Inimilor" (Festival of Hearts) is a prestigious international folklore festival originating from Timișoara, Romania. Initiated in 1990 as a tribute to those who perished during the December 1989 Revolution, it has rapidly grown into one of the most significant cultural events in the region. The festival is officially recognized and listed in the CIOFF (International Council of Organizations of Folklore Festivals and Folk Arts) calendar, underscoring its cultural importance and global reach. Now in its 34th edition, the festival continues to evolve, embracing new technologies to enhance the visitor experience.
-![Festivalul Inimilor Logo](use_case/images/Festivalul-Inimilor-Timisoara-2025.jpg "Festivalul Inimilor Poster")
+![Festivalul Inimilor Logo](images/Festivalul-Inimilor-Timisoara-2025.jpg "Festivalul Inimilor Poster")
 
 ## The Digital Initiative: NFC-Enabled Brooches
 
 For its 34th edition, "Festivalul Inimilor" is introducing innovative digital possibilities for its visitors. Heart-shaped brooches, each embedded with a unique Near Field Communication (NFC) tag, are being distributed.
-![Heart-shaped brooch with NFC tag](use_case/images/inimi_impachetate.jpg "Example of the NFC-enabled brooch")
+![Heart-shaped brooch with NFC tag](images/inimi_impachetate.jpeg "Example of the NFC-enabled brooch")
 
 When a visitor reads one of these NFC tags with their mobile phone, it automatically directs their browser to a specific URL on the festival's official website, following this format:
 
@@ -28,9 +28,9 @@ The `festival-id-tracker-wp-plugin` plays a central role in collecting and analy
     * **Daily Usage Overview:** The "Festival ID Daily Statistics" dashboard widget provides insight into the total number of NFC tag reads each day, along with the count of *unique* NFC tags (and thus, unique users for that day) that accessed the site. This helps organizers understand daily visitor engagement trends via the brooches.
     * **Global Tag Performance:** The "Festival ID Global Statistics" widget offers a comprehensive report on the overall activity of each individual NFC tag. This includes the total number of times each specific tag has been read, and the number of different days it has been used. This is invaluable for identifying the most active brooches/users and understanding long-term engagement patterns.
 
-![Screenshot of the Festival ID Tracker Dashboard Widget](use_case/images/dashboard_screenshot.png "How the plugin data appears in the WordPress dashboard")
+![Screenshot of the Festival ID Tracker Dashboard Widget](images/dashboard_screenshot.png "How the plugin data appears in the WordPress dashboard")
 
-## erived Possibilities and Insights
+## Derived Possibilities and Insights
 
 The data collected by this plugin, stemming from the NFC tag interactions, opens up several possibilities for the festival organizers:
 
@@ -42,5 +42,5 @@ The data collected by this plugin, stemming from the NFC tag interactions, opens
 
 This use case demonstrates how a simple WordPress plugin can bridge physical and digital interactions, providing meaningful data for cultural events like "Festivalul Inimilor."
 
-![Screenshot of the Festival ID Tracker Dashboard Widget](use_case/images/IMG_2466.jpeg "Photo taken at the festival")
+![Screenshot of the Festival ID Tracker Dashboard Widget](images/IMG_2466.jpeg "Photo taken at the festival")
 ---
