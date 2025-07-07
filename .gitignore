@@ -1,0 +1,23 @@
+# WordPress specific ignores for a plugin
+.DS_Store
+.vscode/
+*.log
+*.sql
+*.zip
+*.tar.gz
+*.rar
+*.psd
+*.ai
+*.sublime-*
+*.tmp
+Thumbs.db
+desktop.ini
+ehcache/
+composer.lock
+
+# Common ignored files (if you have them in your plugin folder)
+node_modules/
+npm-debug.log
+yarn-error.log
+# .env
+# vendor/ # Uncomment if you're using Composer to manage dependencies *within* your plugin
