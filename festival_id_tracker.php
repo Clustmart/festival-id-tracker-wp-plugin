@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Festival ID Tracker
  * Plugin URI:  https://festivalul-inimilor.ro/
- * Description: Tracks URL calls with an 'id' parameter (e.g., ?id=XXXXXX) and displays daily statistics and per-ID statistics in the WordPress dashboard.
- * Version:     1.3.0
+ * Description: Tracks URL calls with an 'id' parameter (e.g., ?id=XXXXXX) and displays daily statistics and per-ID statistics in the WordPress dashboard. Includes redirect functionality.
+ * Version:     1.4.0
  * Author:      Paul Wasicsek / Digital Travel Guide
  * Author URI:  https://festivalul-inimilor.ro/
  * License:     GPL2
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
 
-define( 'FIT_VERSION', '1.3.0' ); // Updated version for new widget features
+define( 'FIT_VERSION', '1.4.0' ); // Updated version for redirect functionality
 define( 'FIT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FIT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -44,11 +44,15 @@ function fit_activate_plugin() {
     dbDelta( $sql );
 
     update_option( 'fit_db_version', FIT_VERSION );
+    
+    // Add default settings
+    add_option( 'fit_redirect_url', '' );
+    add_option( 'fit_redirect_enabled', false );
 }
 register_activation_hook( __FILE__, 'fit_activate_plugin' );
 
 /**
- * Checks for the 'id' query parameter and logs the call.
+ * Checks for the 'id' query parameter, logs the call, and handles redirect if configured.
  */
 function fit_track_festival_id_call() {
     if ( ! is_admin() && isset( $_GET['id'] ) && preg_match( '/^[a-zA-Z0-9]{6}$/', $_GET['id'] ) ) {
@@ -61,6 +65,7 @@ function fit_track_festival_id_call() {
         $daily_salt = gmdate( 'Ymd' );
         $user_hash = md5( $user_ip . $user_agent . $daily_salt );
 
+        // Log the call
         $wpdb->insert(
             $table_name,
             array(
@@ -74,6 +79,19 @@ function fit_track_festival_id_call() {
                 '%s',
             )
         );
+
+        // Handle redirect if configured
+        $redirect_enabled = get_option( 'fit_redirect_enabled', false );
+        $redirect_url = get_option( 'fit_redirect_url', '' );
+        
+        if ( $redirect_enabled && ! empty( $redirect_url ) ) {
+            // Add the festival_id to the redirect URL
+            $redirect_url_with_id = add_query_arg( 'id', $festival_id, $redirect_url );
+            
+            // Perform the redirect
+            wp_redirect( $redirect_url_with_id, 302 );
+            exit;
+        }
     }
 }
 add_action( 'wp', 'fit_track_festival_id_call' );
@@ -95,6 +113,176 @@ function fit_get_client_ip() {
     }
     return sanitize_text_field( $ip );
 }
+
+/**
+ * Add admin menu for plugin settings.
+ */
+function fit_add_admin_menu() {
+    add_options_page(
+        __( 'Festival ID Tracker Settings', 'festival-id-tracker' ),
+        __( 'Festival ID Tracker', 'festival-id-tracker' ),
+        'manage_options',
+        'festival-id-tracker',
+        'fit_settings_page'
+    );
+}
+add_action( 'admin_menu', 'fit_add_admin_menu' );
+
+/**
+ * Initialize plugin settings.
+ */
+function fit_settings_init() {
+    register_setting( 'fit_settings', 'fit_redirect_enabled' );
+    register_setting( 'fit_settings', 'fit_redirect_url' );
+
+    add_settings_section(
+        'fit_redirect_section',
+        __( 'Redirect Settings', 'festival-id-tracker' ),
+        'fit_redirect_section_callback',
+        'fit_settings'
+    );
+
+    add_settings_field(
+        'fit_redirect_enabled',
+        __( 'Enable Redirect', 'festival-id-tracker' ),
+        'fit_redirect_enabled_callback',
+        'fit_settings',
+        'fit_redirect_section'
+    );
+
+    add_settings_field(
+        'fit_redirect_url',
+        __( 'Redirect URL', 'festival-id-tracker' ),
+        'fit_redirect_url_callback',
+        'fit_settings',
+        'fit_redirect_section'
+    );
+}
+add_action( 'admin_init', 'fit_settings_init' );
+
+/**
+ * Redirect section description callback.
+ */
+function fit_redirect_section_callback() {
+    echo '<p>' . __( 'Configure redirect behavior for URLs with the "id" parameter. When enabled, visitors will be redirected to the specified URL with the ID parameter preserved.', 'festival-id-tracker' ) . '</p>';
+}
+
+/**
+ * Redirect enabled field callback.
+ */
+function fit_redirect_enabled_callback() {
+    $enabled = get_option( 'fit_redirect_enabled', false );
+    echo '<input type="checkbox" id="fit_redirect_enabled" name="fit_redirect_enabled" value="1" ' . checked( 1, $enabled, false ) . ' />';
+    echo '<label for="fit_redirect_enabled">' . __( 'Enable automatic redirect when ID parameter is detected', 'festival-id-tracker' ) . '</label>';
+}
+
+/**
+ * Redirect URL field callback.
+ */
+function fit_redirect_url_callback() {
+    $url = get_option( 'fit_redirect_url', '' );
+    echo '<input type="url" id="fit_redirect_url" name="fit_redirect_url" value="' . esc_attr( $url ) . '" class="regular-text" placeholder="https://example.com/destination" />';
+    echo '<p class="description">' . __( 'Enter the full URL where users should be redirected. The ID parameter will be automatically added to this URL. Leave empty to disable redirect.', 'festival-id-tracker' ) . '</p>';
+    echo '<p class="description"><strong>' . __( 'Example:', 'festival-id-tracker' ) . '</strong> ' . __( 'If you enter "https://example.com/festival" and someone visits your site with "?id=ABC123", they will be redirected to "https://example.com/festival?id=ABC123"', 'festival-id-tracker' ) . '</p>';
+}
+
+/**
+ * Settings page content.
+ */
+function fit_settings_page() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
+    // Handle form submission
+    if ( isset( $_GET['settings-updated'] ) ) {
+        add_settings_error( 'fit_messages', 'fit_message', __( 'Settings saved successfully!', 'festival-id-tracker' ), 'updated' );
+    }
+
+    settings_errors( 'fit_messages' );
+    ?>
+    <div class="wrap">
+        <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+        
+        <div class="notice notice-info">
+            <p><strong><?php _e( 'How it works:', 'festival-id-tracker' ); ?></strong></p>
+            <ul style="margin-left: 20px;">
+                <li><?php _e( '• When someone visits your site with an ID parameter (e.g., yoursite.com?id=ABC123)', 'festival-id-tracker' ); ?></li>
+                <li><?php _e( '• The plugin logs this visit for tracking purposes', 'festival-id-tracker' ); ?></li>
+                <li><?php _e( '• If redirect is enabled, the visitor is automatically sent to your specified URL', 'festival-id-tracker' ); ?></li>
+                <li><?php _e( '• The ID parameter is preserved in the redirect URL', 'festival-id-tracker' ); ?></li>
+            </ul>
+        </div>
+
+        <form action="options.php" method="post">
+            <?php
+            settings_fields( 'fit_settings' );
+            do_settings_sections( 'fit_settings' );
+            submit_button( __( 'Save Settings', 'festival-id-tracker' ) );
+            ?>
+        </form>
+
+        <div class="card" style="margin-top: 20px;">
+            <h2><?php _e( 'Current Statistics', 'festival-id-tracker' ); ?></h2>
+            <?php fit_display_quick_stats(); ?>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h2><?php _e( 'Testing Your Configuration', 'festival-id-tracker' ); ?></h2>
+            <p><?php _e( 'To test your redirect configuration:', 'festival-id-tracker' ); ?></p>
+            <ol>
+                <li><?php _e( 'Save your settings above', 'festival-id-tracker' ); ?></li>
+                <li><?php _e( 'Visit your site with a test ID:', 'festival-id-tracker' ); ?> 
+                    <code><?php echo home_url( '?id=TEST01' ); ?></code>
+                </li>
+                <li><?php _e( 'You should be redirected to your configured URL with the ID parameter', 'festival-id-tracker' ); ?></li>
+            </ol>
+        </div>
+    </div>
+    <?php
+}
+
+/**
+ * Display quick statistics on the settings page.
+ */
+function fit_display_quick_stats() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'festival_id_log';
+
+    $total_calls = $wpdb->get_var( "SELECT COUNT(*) FROM {$table_name}" );
+    $unique_ids = $wpdb->get_var( "SELECT COUNT(DISTINCT festival_id) FROM {$table_name}" );
+    $today_calls = $wpdb->get_var( $wpdb->prepare( 
+        "SELECT COUNT(*) FROM {$table_name} WHERE DATE(timestamp) = %s", 
+        current_time( 'Y-m-d' ) 
+    ) );
+
+    echo '<table class="form-table">';
+    echo '<tr><th scope="row">' . __( 'Total Calls Tracked:', 'festival-id-tracker' ) . '</th><td>' . number_format( (int) $total_calls ) . '</td></tr>';
+    echo '<tr><th scope="row">' . __( 'Unique Festival IDs:', 'festival-id-tracker' ) . '</th><td>' . number_format( (int) $unique_ids ) . '</td></tr>';
+    echo '<tr><th scope="row">' . __( 'Calls Today:', 'festival-id-tracker' ) . '</th><td>' . number_format( (int) $today_calls ) . '</td></tr>';
+    echo '</table>';
+
+    $redirect_enabled = get_option( 'fit_redirect_enabled', false );
+    $redirect_url = get_option( 'fit_redirect_url', '' );
+    
+    echo '<h4>' . __( 'Current Redirect Configuration:', 'festival-id-tracker' ) . '</h4>';
+    if ( $redirect_enabled && ! empty( $redirect_url ) ) {
+        echo '<span style="color: green;">✓ ' . __( 'Redirect is ENABLED', 'festival-id-tracker' ) . '</span><br>';
+        echo '<strong>' . __( 'Redirect URL:', 'festival-id-tracker' ) . '</strong> ' . esc_html( $redirect_url );
+    } else {
+        echo '<span style="color: #666;">○ ' . __( 'Redirect is DISABLED', 'festival-id-tracker' ) . '</span>';
+    }
+}
+
+/**
+ * Add settings link to plugin actions.
+ */
+function fit_add_settings_link( $links ) {
+    $settings_link = '<a href="' . admin_url( 'options-general.php?page=festival-id-tracker' ) . '">' . __( 'Settings', 'festival-id-tracker' ) . '</a>';
+    array_unshift( $links, $settings_link );
+    return $links;
+}
+add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'fit_add_settings_link' );
 
 /**
  * Add custom dashboard widgets.
@@ -340,5 +528,7 @@ function fit_render_individual_dashboard_widget() {
 //     $table_name = $wpdb->prefix . 'festival_id_log';
 //     $wpdb->query( "DROP TABLE IF EXISTS $table_name" );
 //     delete_option( 'fit_db_version' );
+//     delete_option( 'fit_redirect_url' );
+//     delete_option( 'fit_redirect_enabled' );
 // }
 // register_deactivation_hook( __FILE__, 'fit_deactivate_plugin' );
